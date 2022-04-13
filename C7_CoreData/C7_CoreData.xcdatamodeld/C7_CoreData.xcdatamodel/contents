@@ -1,4 +1,18 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="1" systemVersion="11A491" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="false" userDefinedModelVersionIdentifier="">
-    <elements/>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="19574" systemVersion="21D49" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="Car" representedClassName="Car" syncable="YES">
+        <attribute name="plate" optional="YES" attributeType="String"/>
+        <relationship name="belongto" maxCount="1" deletionRule="Nullify" destinationEntity="UserData" inverseName="own" inverseEntity="UserData"/>
+    </entity>
+    <entity name="UserData" representedClassName="UserData" syncable="YES">
+        <attribute name="cid" optional="YES" attributeType="String"/>
+        <attribute name="cimage" optional="YES" attributeType="Binary"/>
+        <attribute name="cname" optional="YES" attributeType="String"/>
+        <relationship name="own" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Car" inverseName="belongto" inverseEntity="Car"/>
+    </entity>
+    <fetchRequest name="FtchRst_cname_BeginsK" entity="UserData" predicateString="cname BEGINSWITH &quot;K&quot;"/>
+    <elements>
+        <element name="Car" positionX="489.7590942382812" positionY="-104.0394287109375" width="128" height="73"/>
+        <element name="UserData" positionX="-57.32861328125" positionY="-9.914306640625" width="128" height="103"/>
+    </elements>
 </model>
