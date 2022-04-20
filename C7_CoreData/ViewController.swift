@@ -8,24 +8,113 @@
 import UIKit
 import CoreData
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     let app = UIApplication.shared.delegate as! AppDelegate
     var viewContext: NSManagedObjectContext!
     
+    @IBOutlet weak var myImage: UIImageView!
+    @IBOutlet weak var clientName: UITextField!
+    @IBOutlet weak var clientId: UITextField!
+    @IBOutlet weak var carPlate: UITextField!
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
         viewContext = app.persistentContainer.viewContext
         print(NSPersistentContainer.defaultDirectoryURL())
-        deleteAllUserData()
-        insertUserData()
+        //deleteAllUserData()
+//        insertUserData()
         //queryAllUserData()
         //queryWithPredicate()
-        storedFetch()
-        insert_oneToMany()
-        query_oneToMany()
+//        storedFetch()
+//        insert_oneToMany()
+//        query_oneToMany()
+        
+        saveImage()
+        loadImage()
+        
+//        for i in 1...6 {
+//            if let image = UIImage(named: "0\(i).jpg") {
+//                UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
+//            }
+//        }
     }
     
+    @IBAction func clearInfo(_ sender: Any) {
+        clientName.text = ""
+        clientId.text = ""
+        carPlate.text = ""
+        myImage.image = nil
+    }
+    
+    @IBAction func saveData(_ sender: UIButton) {
+        if (clientId.text == "") || (clientName.text == "") || (carPlate.text == "") || (myImage.image == nil) {
+            MyAlertController("Error")
+        } else {
+            let user = NSEntityDescription.insertNewObject(forEntityName: "UserData", into: viewContext) as! UserData
+            user.setValue(clientName.text, forKey: "cname")
+            user.setValue(clientId.text, forKey: "cid")
+            user.setValue(myImage.image?.pngData(), forKey: "cimage")
+            let car = NSEntityDescription.insertNewObject(forEntityName: "Car", into: viewContext) as! Car
+            car.setValue(carPlate.text, forKey: "plate")
+            user.addToOwn(car)
+            app.saveContext()
+            
+            MyAlertController("Successful insert")
+            
+        }
+    }
+    @IBAction func loadData(_ sender: UIButton) {
+        let fetchId = NSPredicate(format: "cid BEGINSWITH[cd] %@", clientId.text!)
+        let fetchName = NSPredicate(format: "cname BEGINSWITH[cd] %@", clientName.text!)
+        let fetchCarPlate = NSPredicate(format: "plate == %@", carPlate.text!)
+
+        let fetchRequest: NSFetchRequest<UserData> = UserData.fetchRequest()
+        var predicate = NSCompoundPredicate()
+        if (clientId.text != "") && (clientName.text == "") {
+            predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [fetchId])
+        } else if (clientId.text == "") && (clientName.text != "") {
+            predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [fetchName])
+        } else {
+            predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [fetchId, fetchName])
+        }
+        fetchRequest.predicate = predicate
+        
+        do {
+            let Users = try viewContext.fetch(fetchRequest)
+            if Users == [] {
+                MyAlertController("Unsuccessful load")
+            }
+            
+            for user in Users {
+                clientId.text = user.cid
+                clientName.text = user.cname
+                myImage.image = UIImage(data: user.cimage! as Data)
+                for car in user.own as! Set<Car> {
+                    carPlate.text = car.plate
+                }
+            }
+        } catch {
+            print(error)
+        }
+    }
+    
+    @IBAction func clickReturn(_ sender: UITextField) {
+        sender.resignFirstResponder()
+    }
+    
+    @IBAction func selected(_ sender: UIButton) {
+        let imagePicker = UIImagePickerController()
+        imagePicker.sourceType = .photoLibrary
+        imagePicker.delegate = self
+        imagePicker.modalPresentationStyle = .popover
+        show(imagePicker, sender: myImage)
+    }
+    
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        let image = info[UIImagePickerController.InfoKey.originalImage] as! UIImage
+        myImage.image = image
+        dismiss(animated: true, completion: nil)
+    }
     func insertUserData() {
         var user = NSEntityDescription.insertNewObject(forEntityName: "UserData", into: viewContext) as! UserData
         user.cid = "B10715039"
@@ -61,6 +150,9 @@ class ViewController: UIViewController {
         do {
             let allUsers = try viewContext.fetch(UserData.fetchRequest())
             for user in allUsers as! [UserData] {
+                if user.own?.count != 0 {
+                    
+                }
                 viewContext.delete(user)
             }
             app.saveContext()
@@ -138,5 +230,46 @@ class ViewController: UIViewController {
             print(error)
         }
     }
+    
+    func saveImage() {
+        let user = NSEntityDescription.insertNewObject(forEntityName: "UserData", into: viewContext) as! UserData
+        user.cid = "M11888999"
+        user.cname = "Serena"
+        let image = UIImage(named: "03.jpg")
+        let imageData = image?.pngData()
+        user.cimage = imageData
+        app.saveContext()
+    }
+    
+    func loadImage() {
+        let fetchRequest: NSFetchRequest<UserData> = UserData.fetchRequest()
+        let predicate = NSPredicate(format: "cid like 'M11888999'")
+        fetchRequest.predicate = predicate
+        
+        do {
+            let allUsers = try viewContext.fetch(fetchRequest)
+            for user in allUsers {
+                myImage.image = UIImage(data: user.cimage! as Data)
+            }
+        } catch {
+            print(error)
+        }
+    }
+    
+    func MyAlertController(_ result: String) {
+        var alert = UIAlertController()
+        if result == "Error" {
+            alert = UIAlertController(title: "Error", message: "Please enter complete information", preferredStyle: .alert)
+        } else if result == "Successful insert" {
+            alert = UIAlertController(title: "Successful insert", message: "\(clientName.text!) added finished.", preferredStyle: .alert)
+        } else {
+            alert = UIAlertController(title: "Unsuccessful load", message: "There is no such data.", preferredStyle: .alert)
+        }
+        
+        let action = UIAlertAction(title: "I got it!", style: .default, handler: nil)
+        alert.addAction(action)
+        self.present(alert, animated: true, completion: nil)
+    }
+    
 }
 
