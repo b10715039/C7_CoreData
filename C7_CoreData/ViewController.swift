@@ -29,8 +29,8 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
 //        insert_oneToMany()
 //        query_oneToMany()
         
-        saveImage()
-        loadImage()
+        //saveImage()
+        //loadImage()
         
 //        for i in 1...6 {
 //            if let image = UIImage(named: "0\(i).jpg") {
@@ -67,34 +67,55 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         let fetchId = NSPredicate(format: "cid BEGINSWITH[cd] %@", clientId.text!)
         let fetchName = NSPredicate(format: "cname BEGINSWITH[cd] %@", clientName.text!)
         let fetchCarPlate = NSPredicate(format: "plate == %@", carPlate.text!)
-
-        let fetchRequest: NSFetchRequest<UserData> = UserData.fetchRequest()
-        var predicate = NSCompoundPredicate()
-        if (clientId.text != "") && (clientName.text == "") {
-            predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [fetchId])
-        } else if (clientId.text == "") && (clientName.text != "") {
-            predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [fetchName])
-        } else {
-            predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [fetchId, fetchName])
-        }
-        fetchRequest.predicate = predicate
         
-        do {
-            let Users = try viewContext.fetch(fetchRequest)
-            if Users == [] {
-                MyAlertController("Unsuccessful load")
-            }
-            
-            for user in Users {
-                clientId.text = user.cid
-                clientName.text = user.cname
-                myImage.image = UIImage(data: user.cimage! as Data)
-                for car in user.own as! Set<Car> {
-                    carPlate.text = car.plate
+        if carPlate.text != "" {
+            let fetchRequest: NSFetchRequest<Car> = Car.fetchRequest()
+            var predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [fetchCarPlate])
+            fetchRequest.predicate = predicate
+            do {
+                let t_cars = try viewContext.fetch(fetchRequest)
+                if t_cars == [] {
+                    MyAlertController("Unsuccessful load")
                 }
+                for t_car in t_cars {
+                    let user = t_car.belongto!
+                    clientId.text = user.cid
+                    clientName.text = user.cname
+                    myImage.image = UIImage(data: user.cimage! as Data)
+                }
+            } catch {
+                print(error)
             }
-        } catch {
-            print(error)
+        } else {
+            let fetchRequest: NSFetchRequest<UserData> = UserData.fetchRequest()
+            var predicate = NSCompoundPredicate()
+            
+            if (clientId.text != "") && (clientName.text == "") {
+                predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [fetchId])
+            } else if (clientId.text == "") && (clientName.text != "") {
+                predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [fetchName])
+            } else {
+                predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [fetchId, fetchName])
+            }
+            fetchRequest.predicate = predicate
+            
+            do {
+                let Users = try viewContext.fetch(fetchRequest)
+                if Users == [] {
+                    MyAlertController("Unsuccessful load")
+                }
+                
+                for user in Users {
+                    clientId.text = user.cid
+                    clientName.text = user.cname
+                    myImage.image = UIImage(data: user.cimage! as Data)
+                    for car in user.own as! Set<Car> {
+                        carPlate.text = car.plate
+                    }
+                }
+            } catch {
+                print(error)
+            }
         }
     }
     
